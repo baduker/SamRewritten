@@ -170,9 +170,9 @@ pub async fn run_timed_unlock(
                     unlocked: true,
                     store: true,
                 }
-                    .request()
+                .request()
             })
-                .await;
+            .await;
 
             // Only `Ok(Ok(true))` is Steam saying it stored the thing.
             match result {

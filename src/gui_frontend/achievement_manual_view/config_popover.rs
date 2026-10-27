@@ -42,7 +42,9 @@ pub(super) fn quit_after_unlock_row(settings: &gtk::gio::Settings) -> (Label, Sw
         .valign(Align::Center)
         .tooltip_text(tr("Close the game once every queued achievement is unlocked").as_str())
         .build();
-    settings.bind("quit-after-unlock", &switch, "active").build();
+    settings
+        .bind("quit-after-unlock", &switch, "active")
+        .build();
     (label, switch)
 }
 
