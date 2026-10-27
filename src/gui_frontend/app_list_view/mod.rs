@@ -1595,8 +1595,9 @@ pub fn create_main_ui(
         move |_, _, _, _| sync_empty_state()
     ));
 
-    // Back button handler
-    back_button.connect_clicked(clone!(
+    // Leaving the app page is an action so a finished timed unlock can do it too.
+    let action_leave_app_page = SimpleAction::new("leave_app_page", None);
+    action_leave_app_page.connect_activate(clone!(
         #[weak]
         list_stack,
         #[weak]
@@ -1615,7 +1616,7 @@ pub fn create_main_ui(
         achievement_loader,
         #[strong]
         cancel_timed_unlock,
-        move |_| {
+        move |_, _| {
             if list_stack.visible_child_name().as_deref() == Some("profile") {
                 set_context_popover_to_app_list_context(&menu_model, &application);
                 list_stack.set_visible_child_name("list");
@@ -1661,22 +1662,13 @@ pub fn create_main_ui(
             ));
         }
     ));
+    application.add_action(&action_leave_app_page);
 
-    let (
-        action_select_all_apps,
-        action_unselect_all_apps,
-        action_unlock_all_selected,
-        action_lock_all_selected,
-    ) = create_bulk_actions(
+    back_button.connect_clicked(clone!(
+        #[weak]
         application,
-        &grid_view,
-        &list_store,
-        achievement_loader.clone(),
-        &context_menu_button,
-        &context_menu_button_loading,
-        &context_menu_button_loading_progress_label,
-        &context_menu_button_info_label,
-    );
+        move |_| application.activate_action("leave_app_page", None)
+    ));
 
     let (action_export_selected, action_import_progress) = create_progress_actions(
         application,

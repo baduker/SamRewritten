@@ -343,6 +343,8 @@ pub fn create_achievements_manual_view(
         timed_raw_model,
         #[strong]
         model_updates,
+        #[strong]
+        settings,
         #[weak]
         application,
         #[weak(rename_to = raw_model)]
@@ -372,8 +374,12 @@ pub fn create_achievements_manual_view(
                     "Instant unlock of {} achievements",
                     achievements.len()
                 );
-                unlock_all_immediately(app_id_val, &achievements);
-                application.activate_action("refresh_achievements_list", None);
+                let all_stored = unlock_all_immediately(app_id_val, &achievements);
+                if all_stored && settings.boolean("quit-after-unlock") {
+                    application.activate_action("leave_app_page", None);
+                } else {
+                    application.activate_action("refresh_achievements_list", None);
+                }
                 return;
             }
 
@@ -394,8 +400,12 @@ pub fn create_achievements_manual_view(
                 cancelled_task,
                 #[strong]
                 model_updates,
+                #[strong]
+                settings,
+                #[weak]
+                application,
                 async move {
-                    run_timed_unlock(
+                    let completed = run_timed_unlock(
                         app_id_val,
                         Op::TimedUnlock,
                         achievements,
@@ -405,6 +415,9 @@ pub fn create_achievements_manual_view(
                         model_updates,
                     )
                     .await;
+                    if completed && settings.boolean("quit-after-unlock") {
+                        application.activate_action("leave_app_page", None);
+                    }
                 }
             ));
 

@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+use super::config_popover::quit_after_unlock_row;
 use crate::gui_frontend::i18n::tr;
 use gtk::glib::clone;
 use gtk::prelude::*;
@@ -104,6 +105,9 @@ pub(super) fn create_copy_controls(settings: &gtk::gio::Settings) -> CopyControl
     grid.attach(&max_gap_row, 1, 0, 1, 1);
     grid.attach(&end_label(tr("First delay").as_str()), 0, 1, 1, 1);
     grid.attach(&first_delay_row, 1, 1, 1, 1);
+    let (quit_label, quit_switch) = quit_after_unlock_row(settings);
+    grid.attach(&quit_label, 0, 2, 1, 1);
+    grid.attach(&quit_switch, 1, 2, 1, 1);
 
     let body = Box::new(Orientation::Vertical, 10);
     body.set_margin_start(12);

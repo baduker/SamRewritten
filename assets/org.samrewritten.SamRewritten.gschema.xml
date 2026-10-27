@@ -151,6 +151,12 @@
             <description>How deferred unlocks are spread over the duration. Valid values are 'even' (equally spaced) and 'random' (first and last pinned to even positions, middle jittered).</description>
         </key>
 
+        <key name="quit-after-unlock" type="b">
+            <default>false</default>
+            <summary>Quit Game After Unlocking</summary>
+            <description>Close the game and return to the library once every staged or copy-timed achievement has been unlocked. Canceled or partly refused runs leave the game open.</description>
+        </key>
+
         <key name="last-counts-scan" type="x">
             <default>0</default>
             <summary>Last Full Achievement Scan</summary>

@@ -112,6 +112,7 @@ fn enforce_min_gap(times: &mut [u64], min_gap: u64, total_ms: u64) {
     }
 }
 
+/// True only when every achievement was stored and the run was not cancelled.
 pub async fn run_timed_unlock(
     app_id: u32,
     op: Op,
@@ -120,10 +121,10 @@ pub async fn run_timed_unlock(
     timed_raw_model: ListStore,
     cancelled: Arc<AtomicBool>,
     model_updates: AchievementModelUpdates,
-) {
+) -> bool {
     debug_assert_eq!(achievements.len(), times_ms.len());
     if achievements.is_empty() {
-        return;
+        return false;
     }
 
     timed_raw_model.remove_all();
@@ -143,6 +144,7 @@ pub async fn run_timed_unlock(
 
     let start_time = std::time::Instant::now();
     let mut next_index = 0usize;
+    let mut all_stored = true;
 
     while next_index < achievements.len() {
         let tick_start = std::time::Instant::now();
@@ -150,7 +152,7 @@ pub async fn run_timed_unlock(
         if cancelled.load(std::sync::atomic::Ordering::Relaxed) {
             dev_println!("CLIENT", "Timed unlock task cancelled");
             timed_raw_model.remove_all();
-            return;
+            return false;
         }
 
         let elapsed_ms = start_time.elapsed().as_millis() as u64;
@@ -168,9 +170,9 @@ pub async fn run_timed_unlock(
                     unlocked: true,
                     store: true,
                 }
-                .request()
+                    .request()
             })
-            .await;
+                .await;
 
             // Only `Ok(Ok(true))` is Steam saying it stored the thing.
             match result {
@@ -192,14 +194,17 @@ pub async fn run_timed_unlock(
                 Ok(Ok(false)) => {
                     eprintln!("[CLIENT] Steam did not store {}", achievement.id());
                     achievement.set_is_achieved(false);
+                    all_stored = false;
                 }
                 Ok(Err(e)) => {
                     eprintln!("[CLIENT] Achievement refused: {e}");
                     achievement.set_is_achieved(false);
+                    all_stored = false;
                 }
                 Err(e) => {
                     eprintln!("[CLIENT] Achievement failed: {e:?}");
                     achievement.set_is_achieved(false);
+                    all_stored = false;
                 }
             }
             model_updates.changed();
@@ -223,9 +228,13 @@ pub async fn run_timed_unlock(
     }
 
     dev_println!("CLIENT", "Timed unlock task finished");
+
+    // Back or a refresh during the final request sets this too.
+    all_stored && !cancelled.load(std::sync::atomic::Ordering::Relaxed)
 }
 
-pub fn unlock_all_immediately(app_id: u32, achievements: &[GAchievementObject]) {
+/// True only when every achievement was set and the store was accepted.
+pub fn unlock_all_immediately(app_id: u32, achievements: &[GAchievementObject]) -> bool {
     use crate::gui_frontend::request::StoreStatsAndAchievements;
 
     let mut unlocked = Vec::with_capacity(achievements.len());
@@ -254,15 +263,17 @@ pub fn unlock_all_immediately(app_id: u32, achievements: &[GAchievementObject]) 
         Ok(true) => {}
         Ok(false) => {
             eprintln!("[CLIENT] Steam did not store the unlocks");
-            return;
+            return false;
         }
         Err(e) => {
             eprintln!("[CLIENT] Failed to store stats and achievements: {e:?}");
-            return;
+            return false;
         }
     }
 
+    let all_stored = unlocked.len() == achievements.len();
     Batch::new(Op::StagedUnlock, app_id, "").record(unlocked);
+    all_stored
 }
 
 struct SeededRng {

@@ -396,6 +396,8 @@ pub(super) fn install_copy_mode(
         model_updates,
         #[strong]
         timed_raw_model,
+        #[strong]
+        settings,
         #[weak(rename_to = raw_model)]
         raw_model,
         #[weak(rename_to = max_gap_spin)]
@@ -433,8 +435,12 @@ pub(super) fn install_copy_mode(
                 cancelled_task,
                 #[strong]
                 model_updates,
+                #[strong]
+                settings,
+                #[weak]
+                application,
                 async move {
-                    run_timed_unlock(
+                    let completed = run_timed_unlock(
                         app_id_val,
                         Op::CopyTiming,
                         achievements,
@@ -444,6 +450,9 @@ pub(super) fn install_copy_mode(
                         model_updates,
                     )
                     .await;
+                    if completed && settings.boolean("quit-after-unlock") {
+                        application.activate_action("leave_app_page", None);
+                    }
                 }
             ));
             set_timed_unlock_actions_enabled(&application, false);

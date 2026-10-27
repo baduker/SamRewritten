@@ -18,7 +18,8 @@ use crate::gui_frontend::unlock_scheduler::{SPACING_EVEN, SPACING_RANDOM};
 use gtk::glib::{self, clone};
 use gtk::prelude::*;
 use gtk::{
-    Adjustment, Align, Box, Grid, Label, Orientation, Popover, SpinButton, Stack, ToggleButton,
+    Adjustment, Align, Box, Grid, Label, Orientation, Popover, SpinButton, Stack, Switch,
+    ToggleButton,
 };
 
 pub(super) struct Config {
@@ -28,6 +29,21 @@ pub(super) struct Config {
     pub(super) duration_spin: SpinButton,
     pub(super) unit_percent: ToggleButton,
     pub(super) spacing_random: ToggleButton,
+}
+
+/// Shared by the staged and copy-timing popovers; both bind the same key.
+pub(super) fn quit_after_unlock_row(settings: &gtk::gio::Settings) -> (Label, Switch) {
+    let label = Label::builder()
+        .label(tr("Quit game when done").as_str())
+        .halign(Align::End)
+        .build();
+    let switch = Switch::builder()
+        .halign(Align::Start)
+        .valign(Align::Center)
+        .tooltip_text(tr("Close the game once every queued achievement is unlocked").as_str())
+        .build();
+    settings.bind("quit-after-unlock", &switch, "active").build();
+    (label, switch)
 }
 
 #[inline]
@@ -140,12 +156,15 @@ pub(super) fn create_config_popover(settings: &gtk::gio::Settings) -> Config {
         .label(tr("Spacing").as_str())
         .halign(Align::End)
         .build();
+    let (quit_label, quit_switch) = quit_after_unlock_row(settings);
     grid.attach(&target_label, 0, 0, 1, 1);
     grid.attach(&target_row, 1, 0, 1, 1);
     grid.attach(&duration_label, 0, 1, 1, 1);
     grid.attach(&duration_row, 1, 1, 1, 1);
     grid.attach(&spacing_label, 0, 2, 1, 1);
     grid.attach(&spacing_box, 1, 2, 1, 1);
+    grid.attach(&quit_label, 0, 3, 1, 1);
+    grid.attach(&quit_switch, 1, 3, 1, 1);
 
     let body = Box::new(Orientation::Vertical, 10);
     body.set_margin_start(12);
